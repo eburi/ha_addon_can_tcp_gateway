@@ -1,3 +1,5 @@
+ARG BUILD_FROM
+
 ### ---------- Stage 1: Build the Rust gateway binary ----------
 FROM rust:1-alpine AS rust-builder
 
@@ -11,7 +13,6 @@ RUN cargo build --release && \
 
 
 ### ---------- Stage 2: Final add-on image ----------
-ARG BUILD_FROM
 FROM $BUILD_FROM
 
 # Install Python dependencies (for the Python engine)
