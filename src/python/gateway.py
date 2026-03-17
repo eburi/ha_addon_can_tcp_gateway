@@ -82,7 +82,7 @@ def parse_raw_line(line: str) -> can.Message | None:
         return None
 
     # Strip timestamp if present (HH:MM:SS.mmm)
-    if len(parts[0]) == 11 and parts[0][2] == ":" and parts[0][5] == ":" and parts[0][8] == ".":
+    if len(parts[0]) == 12 and parts[0][2] == ":" and parts[0][5] == ":" and parts[0][8] == ".":
         parts = parts[1:]
 
     # Strip direction if present
@@ -220,7 +220,7 @@ class CanRawGateway:
         try:
             writer.close()
             await writer.wait_closed()
-        except:
+        except Exception:
             pass
 
 

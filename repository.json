@@ -1,5 +1,8 @@
 {
-  "name": "HA AddOn CAN RAW Gateway",
+  "name": "CAN to TCP Gateway",
   "url": "https://github.com/eburi/ha_addon_can_tcp_gateway",
-  "maintainer": "eburi"
+  "maintainer": "eburi",
+  "images": [
+    "ghcr.io/eburi/ha_addon_can_tcp_gateway:latest"
+  ]
 }

@@ -1,0 +1,18 @@
+[package]
+name = "can-tcp-gateway"
+version = "0.3.0"
+edition = "2021"
+description = "High-performance CAN-to-TCP gateway implementing the Yacht Devices RAW text protocol"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+socketcan = "3"
+log = "0.4"
+env_logger = "0.11"
+chrono = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+codegen-units = 1

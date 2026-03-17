@@ -1,210 +1,290 @@
-# Home Assistant Add-on: CAN RAW Gateway  
-**Yacht Devices RAW Text Protocol (Appendix E Compatible)**
+# Home Assistant Add-on: CAN to TCP Gateway
 
-This Home Assistant add-on exposes a Linux SocketCAN interface (e.g. `can0`) as a
-**Yacht Devices–compatible RAW text TCP feed**, fully bi-directional, using the
-format defined in **Appendix E** of the Yacht Devices YDEN-02 / YDNU-02 protocol
-documentation.
+<p align="center">
+  <img src="logo.svg" alt="CAN to TCP Gateway -- Full-Duplex" width="560"/>
+</p>
 
-👉 Protocol spec (RAW text mode):  
-**https://www.yachtd.com/downloads/ydnu02.pdf**  
-(See *Appendix E — Text Format of NMEA 2000 Messages*)
+**Full-duplex CAN-to-TCP gateway implementing the Yacht Devices RAW text protocol (Appendix E).**
 
-This allows Home Assistant OS to emulate the RAW output mode of Yacht Devices’
-CAN/NMEA2000 bridges (such as YDEN-02), enabling integrations with SignalK,
-NMEA2000 tools, or custom software that expect the YD RAW TCP interface.
+Exposes a Linux SocketCAN interface (e.g. `can0`) as a bi-directional TCP feed so
+that SignalK, NMEA 2000 tools, or any software expecting the Yacht Devices RAW
+interface can consume and transmit CAN frames -- no dedicated hardware bridge required.
+
+Protocol specification: [Yacht Devices YDEN-02 / YDNU-02 Manual -- Appendix E](https://www.yachtd.com/downloads/ydnu02.pdf)
 
 ---
 
-## ✨ Features
-
-### ✔ Exact Yacht Devices RAW Text Output
-Every CAN frame is broadcast to all TCP clients in the RAW text format:
+## Architecture
 
 ```
-hh:mm:ss.sss R <CAN_ID> <DATA...>
+CAN Bus  <-->  SocketCAN (can0)  <-->  Gateway Add-on  <-->  TCP :2598  <-->  Clients
+                                        (full duplex)
 ```
 
-- Timestamp in UTC with millisecond resolution  
-- `R` indicates **Received** from CAN  
-- CAN ID in 8-digit uppercase hex  
-- Data bytes in two-digit uppercase hex  
+Every CAN frame received from the bus is broadcast to all connected TCP clients
+with an `R` (Received) direction tag. Frames sent by a TCP client are written to
+the CAN bus and echoed back with a `T` (Transmitted) tag, then broadcast to all
+other connected clients.
 
-Example:
-```
-12:30:15.482 R 19F51323 01 02 03 04
-```
-
-### ✔ Bi-directional (TCP → CAN → TCP)
-TCP clients may send RAW lines:
+### RAW text format
 
 ```
-19F51323 01 02 03 04
+hh:mm:ss.sss R 19F51323 01 02 03 04     <- received from CAN
+hh:mm:ss.sss T 19F51323 01 02 03 04     <- transmitted by TCP client
 ```
 
-The add-on will:
-
-1. Parse the frame  
-2. Send it to the CAN bus  
-3. Echo back as a **Transmitted** frame:
-   ```
-   hh:mm:ss.sss T 19F51323 01 02 03 04
-   ```
-4. Rebroadcast it to all other connected TCP clients  
-
-### ✔ Timestamp & Direction Field (per Appendix E)
-- Frames originating from CAN: `R`
-- Frames originating from TCP clients: `T`  
-- Timestamps follow the exact formatting rules in the spec
-
-### ✔ Multi-client Support
-Any number of TCP clients may connect.  
-All receive the CAN feed and see each other’s transmissions.
-
-### ✔ Works on Home Assistant OS
-- Uses `host_network: true`  
-- Accesses SocketCAN without needing `/dev/can0`  
-- Requires only Home Assistant’s standard base images
+- Timestamps in UTC with millisecond resolution
+- CAN ID in 8-digit uppercase hex
+- Data bytes in two-digit uppercase hex, space-separated
 
 ---
 
-## 📡 How It Works
+## Project structure
 
 ```
-     CAN Bus  ←→  SocketCAN (can0)
-                    ↓
-         CAN RAW Gateway Add-on
-                    ↓
-         TCP Server at <host>:<port>
-         (default 0.0.0.0:2598)
-                    ↓
-     Clients (SignalK, tools, etc.)
+src/
+  python/
+    gateway.py           -- Python gateway (asyncio + python-can)
+  rust/
+    Cargo.toml           -- Rust crate manifest
+    Cargo.lock
+    src/
+      main.rs            -- Rust gateway (tokio + socketcan)
+tests/
+  python/
+    test_gateway.py      -- Python unit tests
+can2tcp/                 -- Home Assistant Add-on packaging
+  config.yaml            -- HA add-on metadata, options, schema
+  Dockerfile             -- multi-stage build (Rust + Python)
+  run.sh                 -- HA add-on entry point (bashio)
+conftest.py              -- adds src/python/ to sys.path for pytest
+requirements.txt         -- Python runtime + dev dependencies
+local_deploy.sh          -- deploy to a HA device via scp
+repository.json          -- HA add-on repository manifest
+logo.svg                 -- project logo
+.github/workflows/
+  ci.yml                 -- lint + test (Python & Rust)
+  docker.yml             -- build and publish HA add-on images
 ```
 
-The add-on behaves like a Yacht Devices RAW bridge, meaning SignalK or any
-software expecting the YD RAW protocol can connect without modification.
+Source code lives in `src/` with separate directories for each implementation.
+The `can2tcp/` directory contains only HA add-on packaging files (Dockerfile,
+config.yaml, run.sh). During CI and local deploy, `src/` is copied into the
+`can2tcp/` build context so the Dockerfile can access both implementations.
 
 ---
 
-## 🔧 Installation
+## Running without Home Assistant
 
-q. Add the repository to Home Assistant:
-   - **Settings → Add-ons → Add-on Store**
-   - Top-right menu → **Repositories**
-   - Enter your repository URL
+Both gateway implementations can run standalone on any Linux machine with a
+SocketCAN interface. No Home Assistant, no Docker required.
 
-3. Install **CAN RAW Gateway** from the list
+### Python
 
-4. Start the add-on
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install python-can
 
-5. Configure your client (e.g., SignalK) to connect to:
+# Set up a virtual CAN interface for testing
+sudo modprobe vcan
+sudo ip link add dev vcan0 type vcan
+sudo ip link set up vcan0
 
+# Run the gateway
+CAN_INTERFACE=vcan0 LISTEN_PORT=2598 python3 src/python/gateway.py
+```
+
+### Rust
+
+```bash
+cd src/rust
+cargo build --release
+
+# Run the gateway
+CAN_INTERFACE=vcan0 LISTEN_PORT=2598 ./target/release/can-tcp-gateway
+```
+
+### Environment variables
+
+| Variable        | Description              | Default    |
+|-----------------|--------------------------|------------|
+| `CAN_INTERFACE` | SocketCAN interface name | `can0`     |
+| `LISTEN_HOST`   | TCP bind address         | `0.0.0.0`  |
+| `LISTEN_PORT`   | TCP listen port          | `2598`     |
+| `LOG_LEVEL`     | Logging verbosity        | `info`     |
+
+---
+
+## Running tests
+
+### Python
+
+```bash
+pip install -r requirements.txt
+pytest tests/python/ -v
+```
+
+The `conftest.py` at the project root adds `src/python/` to `sys.path`
+automatically so test imports work without installation.
+
+### Rust
+
+```bash
+cd src/rust
+cargo test --verbose
+```
+
+### Linting
+
+```bash
+# Python
+ruff check src/python/ tests/python/
+ruff format --check src/python/ tests/python/
+
+# Rust
+cd src/rust
+cargo fmt --check
+cargo clippy -- -D warnings
+```
+
+---
+
+## Home Assistant Add-on installation
+
+1. **Add the repository** to Home Assistant:
+   Settings > Add-ons > Add-on Store > Repositories (top-right menu) >
+   paste the repository URL.
+
+2. **Install** *CAN to TCP Gateway* from the add-on list.
+
+3. **Start** the add-on.
+
+4. **Connect** your client (SignalK, netcat, etc.):
    ```
    Host: homeassistant.local
    Port: 2598
    ```
 
+### Add-on configuration
+
+| Option           | Description                              | Default    |
+|------------------|------------------------------------------|------------|
+| `can_interface`  | SocketCAN interface name                 | `can0`     |
+| `listen_host`    | TCP bind address                         | `0.0.0.0`  |
+| `listen_port`    | TCP listen port                          | `2598`     |
+| `log_level`      | Logging verbosity                        | `info`     |
+| `gateway_engine` | Gateway implementation (`python`/`rust`) | `python`   |
+
+### Gateway engine selection
+
+The add-on ships with two gateway implementations:
+
+- **`python`** (default) -- asyncio-based gateway. Stable and well-tested.
+- **`rust`** -- high-performance rewrite using tokio with dedicated CAN I/O
+  threads. Functionally equivalent to the Python engine.
+
+Change the `gateway_engine` option and restart to switch.
+
 ---
 
-## ⚙️ Configuration Options
+## Local deploy to Home Assistant
 
-Inside the add-on UI:
-
-```yaml
-can_interface: can0
-listen_host: 0.0.0.0
-listen_port: 2598
-log_level: info
+```bash
+./local_deploy.sh [user@host]
+# Default: root@192.168.46.222
 ```
 
-### Parameters
-
-| Option          | Description                               | Default |
-|-----------------|-------------------------------------------|---------|
-| `can_interface` | SocketCAN interface name                  | `can0`  |
-| `listen_host`   | TCP bind address                          | `0.0.0.0` |
-| `listen_port`   | TCP port for RAW server                   | `2598`  |
-| `log_level`     | Logging verbosity                         | `info`  |
+The script assembles a self-contained add-on directory (stripping the `image:`
+line from config.yaml so HA builds locally), copies it to the HA device, and
+prints instructions for installing/rebuilding.
 
 ---
 
-## 🔌 Client Examples
+## CI / CD
 
-### Connect using netcat
+### CI workflow (`.github/workflows/ci.yml`)
+
+Runs on every push and PR to `main`:
+
+- **Python lint** -- ruff check + format
+- **Python test** -- pytest
+- **Rust lint** -- cargo fmt + clippy
+- **Rust test** -- cargo test
+
+### Docker workflow (`.github/workflows/docker.yml`)
+
+Runs on push to `main` and version tags (`v*`):
+
+- Copies `src/` into the `can2tcp/` build context
+- Uses [Home Assistant Builder](https://github.com/home-assistant/builder) to
+  produce multi-arch images (`amd64`, `armv7`, `aarch64`)
+- Publishes to `ghcr.io/eburi/ha_addon_can_tcp_gateway`
+
+---
+
+## Client examples
+
+### Connect with netcat
+
 ```
 nc homeassistant.local 2598
 ```
 
-### Sample output
+Sample output:
 ```
 12:41:23.105 R 09F805FD FF 00 00 00
 12:41:23.421 R 19F51323 01 02 03 04
 ```
 
-### Transmit a frame back to the CAN bus
+### Transmit a frame to the CAN bus
+
 ```
 19F51323 01 02 03 04
 ```
 
-Add-on will echo:
+The gateway echoes back:
 ```
 12:41:30.882 T 19F51323 01 02 03 04
 ```
 
 ---
 
-## CAN HATs in HomeAssistant OS
+## CAN HAT setup (Home Assistant OS)
 
-This AddOn depends on the can interface to be present in the HAOS.
+This add-on requires a working SocketCAN interface in HAOS. Below is an example
+for the **Waveshare 2-CH CAN HAT+** on a Raspberry Pi 5 with NVMe boot:
 
-Here is how I enabled the dtoverlay necessary for the 2CH CAN HAT+ from Waveshare for HAOS running on Raspberry Pi5 with an SSD:
-
-```
+```bash
 mkdir /mnt/boot
 mount -t vfat /dev/nvme0n1p1 /mnt/boot
-cd /mnt/boot
-nano config.txt
+nano /mnt/boot/config.txt
 ```
 
-Add: 
+Add:
 
 ```
 dtparam=spi=on
-dtoverlay=i2c0 
+dtoverlay=i2c0
 dtoverlay=spi1-3cs
 dtoverlay=mcp2515,spi1-1,oscillator=16000000,interrupt=22
 dtoverlay=mcp2515,spi1-2,oscillator=16000000,interrupt=13
 ```
 
-See here: https://www.waveshare.com/wiki/2-CH_CAN_HAT+
-
-Other CAN-Interface HATs follow the same pattern.
-
----
-
-
-## 🛠 Notes
-
-- Add support for read-only mode
-- Split in two containers, one running in mode network=host, reading and writing CAN frames and connecting to a server-container that will expose the actual TCP port
-- The add-on **does not** perform fast-packet reassembly  
-- Frames larger than 8 bytes appear as raw CAN fragments  
-- Future versions may add optional fast-packet support
+See the [Waveshare 2-CH CAN HAT+ wiki](https://www.waveshare.com/wiki/2-CH_CAN_HAT+)
+for details. Other CAN HATs follow the same dtoverlay pattern.
 
 ---
 
-## 📄 Protocol Reference
+## Roadmap
 
-Yacht Devices — NMEA 2000® Gateway YDEN-02 / YDNU-02 Manual  
-**https://www.yachtd.com/downloads/ydnu02.pdf**  
-See **Appendix E — Text Format of NMEA 2000 Messages**
+- Read-only mode option
+- Split into two containers (host-network CAN reader + server container exposing TCP)
+- Fast-packet reassembly for multi-frame PGNs
+- Optional Actisense binary format output
 
 ---
 
-## 🏁 Summary
+## License
 
-This add-on turns your Home Assistant OS host into a **fully compatible Yacht
-Devices RAW NMEA2000 TCP bridge**, enabling powerful integrations with SignalK
-or custom marine software.
-
-
+See repository for license details.

@@ -1,0 +1,8 @@
+# Runtime
+python-can
+
+# Dev / test
+pytest
+pytest-asyncio
+pytest-timeout
+ruff

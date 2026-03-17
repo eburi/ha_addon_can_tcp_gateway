@@ -1,31 +1,32 @@
 name: CAN to TCP Gateway
+version: "0.4.0"
 slug: can_tcp_gateway
-version: "0.2.0"
-description: >
-  Expose SocketCAN frames from a CAN interface over TCP in various binary formats
-  (simple, yacht, actisense) so SignalK can treat it like a NMEA2000 gateway.
-
+description: >-
+  Full-duplex CAN-to-TCP gateway for Home Assistant.
+  Exposes a Linux SocketCAN interface (e.g. can0) as a Yacht Devices RAW
+  text TCP feed so SignalK or other marine software can consume NMEA 2000
+  data without dedicated hardware.
+url: "https://github.com/eburi/ha_addon_can_tcp_gateway"
+image: ghcr.io/eburi/ha_addon_can_tcp_gateway/{arch}
 arch:
   - amd64
   - armv7
   - aarch64
-
 startup: services
 init: false
 host_network: true
-
 privileged:
   - NET_ADMIN
   - SYS_RAWIO
-
 options:
   can_interface: can0
   listen_host: 0.0.0.0
   listen_port: 2598
   log_level: info
-
+  gateway_engine: python
 schema:
   can_interface: str
   listen_host: str
   listen_port: int
   log_level: list(info|debug|warning|error)
+  gateway_engine: list(python|rust)
