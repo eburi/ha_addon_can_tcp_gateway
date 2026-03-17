@@ -11,6 +11,7 @@ import can
 # Logging & utilities
 # ---------------------------------------------------------------------------
 
+
 def setup_logging(level: str):
     numeric = {
         "debug": logging.DEBUG,
@@ -20,8 +21,7 @@ def setup_logging(level: str):
     }.get(level.lower(), logging.INFO)
 
     logging.basicConfig(
-        level=numeric,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+        level=numeric, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
     )
 
 
@@ -38,6 +38,7 @@ def utc_timestamp() -> str:
 # ---------------------------------------------------------------------------
 # Yacht Devices RAW Formatting
 # ---------------------------------------------------------------------------
+
 
 def encode_raw_received(msg: can.Message) -> bytes:
     """
@@ -82,7 +83,12 @@ def parse_raw_line(line: str) -> can.Message | None:
         return None
 
     # Strip timestamp if present (HH:MM:SS.mmm)
-    if len(parts[0]) == 12 and parts[0][2] == ":" and parts[0][5] == ":" and parts[0][8] == ".":
+    if (
+        len(parts[0]) == 12
+        and parts[0][2] == ":"
+        and parts[0][5] == ":"
+        and parts[0][8] == "."
+    ):
         parts = parts[1:]
 
     # Strip direction if present
@@ -100,16 +106,14 @@ def parse_raw_line(line: str) -> can.Message | None:
 
     data = bytes(int(b, 16) for b in parts[1:])
     return can.Message(
-        arbitration_id=can_id,
-        data=data,
-        is_extended_id=True,
-        dlc=len(data)
+        arbitration_id=can_id, data=data, is_extended_id=True, dlc=len(data)
     )
 
 
 # ---------------------------------------------------------------------------
 # TCP ↔ CAN RAW Gateway
 # ---------------------------------------------------------------------------
+
 
 class CanRawGateway:
     def __init__(self):
@@ -176,7 +180,9 @@ class CanRawGateway:
             for c in dead:
                 await self._drop_client(c)
 
-    async def _handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    async def _handle_client(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ):
         """
         Bi-directional RAW:
         - Receive RAW lines from client → CAN bus → echo back as 'T'
@@ -232,4 +238,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

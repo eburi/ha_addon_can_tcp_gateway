@@ -25,6 +25,7 @@ from gateway import (
 # utc_timestamp
 # ---------------------------------------------------------------------------
 
+
 class TestUtcTimestamp(unittest.TestCase):
     """Verify timestamp format matches YD RAW spec: HH:MM:SS.mmm"""
 
@@ -46,6 +47,7 @@ class TestUtcTimestamp(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # encode_raw_received / encode_raw_transmit
 # ---------------------------------------------------------------------------
+
 
 def _make_can_msg(arb_id: int, data: bytes) -> can.Message:
     return can.Message(
@@ -108,6 +110,7 @@ class TestEncodeRawTransmit(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # parse_raw_line
 # ---------------------------------------------------------------------------
+
 
 class TestParseRawLine(unittest.TestCase):
     def test_bare_id_and_data(self):
@@ -176,6 +179,7 @@ class TestParseRawLine(unittest.TestCase):
 # setup_logging
 # ---------------------------------------------------------------------------
 
+
 class TestSetupLogging(unittest.TestCase):
     def test_accepts_valid_levels(self):
         for level in ("debug", "info", "warning", "error"):
@@ -189,12 +193,16 @@ class TestSetupLogging(unittest.TestCase):
 # CanRawGateway construction
 # ---------------------------------------------------------------------------
 
+
 class TestCanRawGatewayInit(unittest.TestCase):
-    @patch.dict("os.environ", {
-        "CAN_INTERFACE": "vcan0",
-        "LISTEN_HOST": "127.0.0.1",
-        "LISTEN_PORT": "3000",
-    })
+    @patch.dict(
+        "os.environ",
+        {
+            "CAN_INTERFACE": "vcan0",
+            "LISTEN_HOST": "127.0.0.1",
+            "LISTEN_PORT": "3000",
+        },
+    )
     def test_reads_env(self):
         gw = CanRawGateway()
         self.assertEqual(gw.can_interface, "vcan0")
@@ -219,6 +227,7 @@ class TestCanRawGatewayInit(unittest.TestCase):
 # ---------------------------------------------------------------------------
 # CanRawGateway._drop_client
 # ---------------------------------------------------------------------------
+
 
 class TestDropClient(unittest.TestCase):
     def test_drop_removes_and_closes(self):

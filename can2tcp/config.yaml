@@ -10,7 +10,6 @@ url: "https://github.com/eburi/ha_addon_can_tcp_gateway"
 image: ghcr.io/eburi/ha_addon_can_tcp_gateway/{arch}
 arch:
   - amd64
-  - armv7
   - aarch64
 startup: services
 init: false

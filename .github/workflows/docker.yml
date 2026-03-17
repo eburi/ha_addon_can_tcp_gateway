@@ -33,5 +33,5 @@ jobs:
         uses: home-assistant/builder@2026.02.1
         with:
           args: |
-            --amd64 --aarch64 --armv7 \
+            --amd64 --aarch64 \
             --target can2tcp
