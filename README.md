@@ -174,15 +174,15 @@ cargo clippy -- -D warnings
 | `listen_host`    | TCP bind address                         | `0.0.0.0`  |
 | `listen_port`    | TCP listen port                          | `2598`     |
 | `log_level`      | Logging verbosity                        | `info`     |
-| `gateway_engine` | Gateway implementation (`python`/`rust`) | `python`   |
+| `gateway_engine` | Gateway implementation (`python`/`rust`) | `rust`     |
 
 ### Gateway engine selection
 
 The add-on ships with two gateway implementations:
 
-- **`python`** (default) -- asyncio-based gateway. Stable and well-tested.
-- **`rust`** -- high-performance rewrite using tokio with dedicated CAN I/O
-  threads. Functionally equivalent to the Python engine.
+- **`rust`** (default) -- high-performance rewrite using tokio with dedicated
+  CAN I/O threads. Recommended based on lower CPU use under production bus load.
+- **`python`** -- asyncio-based gateway. Stable and well-tested.
 
 Change the `gateway_engine` option and restart to switch.
 

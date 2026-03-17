@@ -1,5 +1,5 @@
 name: CAN to TCP Gateway
-version: "0.4.0"
+version: "1.0.0"
 slug: can_tcp_gateway
 description: >-
   Full-duplex CAN-to-TCP gateway for Home Assistant.
@@ -22,7 +22,7 @@ options:
   listen_host: 0.0.0.0
   listen_port: 2598
   log_level: info
-  gateway_engine: python
+  gateway_engine: rust
 schema:
   can_interface: str
   listen_host: str
