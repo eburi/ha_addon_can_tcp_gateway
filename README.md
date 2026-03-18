@@ -57,6 +57,11 @@ can2tcp/                 -- Home Assistant Add-on packaging
   config.yaml            -- HA add-on metadata, options, schema
   Dockerfile             -- multi-stage build (Rust + Python)
   run.sh                 -- HA add-on entry point (bashio)
+  icon.png               -- HA app icon (128x128)
+  logo.png               -- HA app logo (250x100)
+  README.md              -- HA app store intro
+  DOCS.md                -- HA app documentation tab
+  CHANGELOG.md           -- HA app version history
 conftest.py              -- adds src/python/ to sys.path for pytest
 requirements.txt         -- Python runtime + dev dependencies
 local_deploy.sh          -- deploy to a HA device via scp

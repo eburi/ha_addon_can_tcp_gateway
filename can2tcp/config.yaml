@@ -1,22 +1,24 @@
 name: CAN to TCP Gateway
-version: "1.0.0"
+version: "1.1.0"
 slug: can_tcp_gateway
 description: >-
-  Full-duplex CAN-to-TCP gateway for Home Assistant.
-  Exposes a Linux SocketCAN interface (e.g. can0) as a Yacht Devices RAW
-  text TCP feed so SignalK or other marine software can consume NMEA 2000
-  data without dedicated hardware.
+  Full-duplex CAN-to-TCP gateway implementing the Yacht Devices RAW text
+  protocol. Bridges a Linux SocketCAN interface (e.g. can0) to TCP port 2598
+  so that SignalK or other marine software can consume and transmit NMEA 2000
+  CAN frames without dedicated hardware.
 url: "https://github.com/eburi/ha_addon_can_tcp_gateway"
 image: ghcr.io/eburi/ha_addon_can_tcp_gateway/{arch}
 arch:
   - amd64
   - aarch64
 startup: services
+boot: manual
 init: false
 host_network: true
 privileged:
   - NET_ADMIN
   - SYS_RAWIO
+watchdog: "tcp://[HOST]:[PORT:2598]"
 options:
   can_interface: can0
   listen_host: 0.0.0.0
