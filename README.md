@@ -176,10 +176,12 @@ cargo clippy -- -D warnings
 | Option           | Description                              | Default    |
 |------------------|------------------------------------------|------------|
 | `can_interface`  | SocketCAN interface name                 | `can0`     |
-| `listen_host`    | TCP bind address                         | `0.0.0.0`  |
 | `listen_port`    | TCP listen port                          | `2598`     |
 | `log_level`      | Logging verbosity                        | `info`     |
 | `gateway_engine` | Gateway implementation (`python`/`rust`) | `rust`     |
+
+Note: The add-on no longer configures CAN link settings itself. Ensure the host
+OS has the selected SocketCAN interface configured and up before starting.
 
 ### Gateway engine selection
 

@@ -1,5 +1,5 @@
 name: CAN to TCP Gateway
-version: "1.1.0"
+version: "1.2.0"
 slug: can_tcp_gateway
 description: >-
   Full-duplex CAN-to-TCP gateway implementing the Yacht Devices RAW text
@@ -14,20 +14,19 @@ arch:
 startup: services
 boot: manual
 init: false
-host_network: true
-privileged:
-  - NET_ADMIN
-  - SYS_RAWIO
+host_network: false
+ports:
+  2598/tcp: 2598
+ports_description:
+  2598/tcp: Yacht Devices RAW TCP stream
 watchdog: "tcp://[HOST]:[PORT:2598]"
 options:
   can_interface: can0
-  listen_host: 0.0.0.0
   listen_port: 2598
   log_level: info
   gateway_engine: rust
 schema:
   can_interface: str
-  listen_host: str
   listen_port: int
   log_level: list(info|debug|warning|error)
   gateway_engine: list(python|rust)

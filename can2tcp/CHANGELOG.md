@@ -26,3 +26,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Configurable CAN interface, TCP bind address, port, and log level.
 - Multi-architecture support (amd64, aarch64).
 - Automatic CAN interface setup via `ip link` in the add-on entry point.
+
+## [1.2.0]
+
+### Changed
+
+- Removed `host_network` requirement; add-on now uses explicit TCP port mapping.
+- Removed in-container CAN link initialization.
+- `listen_host` option removed and fixed to `0.0.0.0`.
+- Add-on now expects host OS to provide a configured SocketCAN interface.

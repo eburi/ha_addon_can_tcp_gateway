@@ -24,10 +24,12 @@ hh:mm:ss.sss T 19F51323 01 02 03 04     <- transmitted by TCP client
 | Option           | Description                              | Default    |
 |------------------|------------------------------------------|------------|
 | `can_interface`  | SocketCAN interface name                 | `can0`     |
-| `listen_host`    | TCP bind address                         | `0.0.0.0`  |
 | `listen_port`    | TCP listen port                          | `2598`     |
 | `log_level`      | Logging verbosity                        | `info`     |
 | `gateway_engine` | Gateway implementation (`python`/`rust`) | `rust`     |
+
+The add-on no longer configures CAN bitrate or link state. Configure and bring
+up the CAN interface on the host OS before starting this add-on.
 
 ### Gateway engine
 
